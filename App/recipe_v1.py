@@ -8,9 +8,8 @@ from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 import tensorflow as tf
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, Dense
-
 icon = Image.open("chef.jpg")
 st.set_page_config(layout='centered', page_title='AI-Powered Recipe Recommender', page_icon=icon)
 
@@ -18,8 +17,6 @@ st.set_page_config(layout='centered', page_title='AI-Powered Recipe Recommender'
 image = Image.open("project_logo.JPG")
 # Let's specify which column, fix its width, and let's give this image a caption:
 st.image(Image.open("project_logo.JPG"), use_column_width=True)
-
-
 # Load the saved models and components
 with open('recipe_recommendation_model.pkl', 'rb') as file:
     model = pickle.load(file)
@@ -374,10 +371,3 @@ with st.expander("Leave Us a Comment or Question"):
     # Use Local CSS File
     local_css("style.css")
 
-st.write("""
-    ### Contacts
-    [![](https://img.shields.io/badge/GitHub-Recipes%20Recommender-informational)](https://github.com/akthammomani/AI_Powered_Recipe_Recommender/)
-    [![](https://img.shields.io/badge/Open-Issue-informational)](https://github.com/akthammomani/AI_Powered_Recipe_Recommender/issues)
-    [![MAIL Badge](https://img.shields.io/badge/-aktham.momani81@gmail.com-c14438?style=flat-square&logo=Gmail&logoColor=white&link=mailto:aktham.momani81@gmail.com)](mailto:aktham.momani81@gmail.com)
-    ###### © All rights reserved.
-    """)
