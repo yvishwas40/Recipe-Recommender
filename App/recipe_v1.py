@@ -8,15 +8,18 @@ from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 import tensorflow as tf
-from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
+
 icon = Image.open("chef.jpg")
-st.set_page_config(layout='centered', page_title='AI-Powered Recipe Recommender', page_icon=icon)
+st.set_page_config(layout='centered', page_title='Recipe Recommender Using ML', page_icon=icon)
 
 # Let's upload the Painted Ladies image:
-image = Image.open("project_logo.JPG")
+image = Image.open("project_logo.JPEG")
 # Let's specify which column, fix its width, and let's give this image a caption:
-st.image(Image.open("project_logo.JPG"), use_column_width=True)
+st.image(Image.open("project_logo.JPEG"), use_column_width=True)
+
+
 # Load the saved models and components
 with open('recipe_recommendation_model.pkl', 'rb') as file:
     model = pickle.load(file)
@@ -200,8 +203,6 @@ if option == 'Personalized Recommendations':
         st.write(f"Top {10} recommendations for '{selected_recipe}':")
         st.dataframe(similar_recipes.reset_index(drop=True).reset_index(drop=False).rename(columns={'index': 'Rank'}).assign(Rank=lambda x: x.index + 1), hide_index=True)
 
-        st.write("#### Learn More")
-        st.markdown("[![](https://img.shields.io/badge/GitHub%20-Recipes%20Recommender-informational)](https://github.com/akthammomani/AI_Powered_Recipe_Recommender/tree/main/Notebooks/Modeling)")
     
     elif user_input and not selected_recipe:
         if st.button('Get Recommendations'):
@@ -246,8 +247,6 @@ elif option == 'Popular Searches':
     with col2:
         if st.button('Fish'):
             results = filter_and_sort_by_recipe_name("fish")
-        if st.button('Beef'):
-            results = filter_and_sort_by_recipe_name("Beef")
         if st.button('Chicken'):
             results = filter_and_sort_by_recipe_name("Chicken")            
     with col3:
@@ -279,23 +278,14 @@ elif option == 'Custom Search':
     category = st.selectbox('Category', [
         'appetizers-and-snacks', 'desserts', 'world-cuisine', 'main-dish', 
         'side-dish', 'bread', 'soups-stews-and-chili', 'meat-and-poultry', 
-        'salad', 'seafood', 'breakfast-and-brunch', 'trusted-brands-recipes-and-tips', 
-        'everyday-cooking', 'fruits-and-vegetables', 'pasta-and-noodles', 
-        'drinks', 'holidays-and-events', 'bbq-grilling'
+        'salad', 'seafood', 'breakfast-and-brunch'
     ])
     
     diet_type = st.selectbox('Diet Type', [
         'General', 'High Protein', 'Low Carb, Low Sugar', 'Low Carb, High Protein, Low Sugar',
         'High Protein, Low Sugar', 'Low Fat', 'Low Sugar', 'Low Carb, Low Fat, Low Sugar',
         'Low Fat, Low Sugar', 'Low Carb, Low Fat, Low Sodium, Low Sugar', 'Low Fat, Low Sodium',
-        'Low Carb, Low Fat, Low Sodium', 'Low Sodium', 'Low Carb, High Protein', 'Low Carb',
-        'Low Carb, Low Fat', 'Low Carb, Low Fat, High Protein, Low Sugar', 'Low Fat, High Protein',
-        'Low Carb, Low Sodium, Low Sugar', 'Low Fat, Low Sodium, Low Sugar',
-        'Low Fat, High Protein, Low Sugar', 'Low Carb, Low Sodium', 'Low Carb, Low Fat, High Protein',
-        'Low Sodium, Low Sugar', 'Low Carb, High Protein, Low Sodium, Low Sugar',
-        'Low Carb, Low Fat, High Protein, Low Sodium, Low Sugar', 'High Protein, Low Sodium, Low Sugar',
-        'High Protein, Low Sodium', 'Low Carb, High Protein, Low Sodium', 'Low Fat, High Protein, Low Sodium',
-        'Low Fat, High Protein, Low Sodium, Low Sugar', 'Low Carb, Low Fat, High Protein, Low Sodium'
+        'Low Carb, Low Fat, Low Sodium', 'Low Sodium', 'Low Carb, High Protein', 'Low Carb'
     ])
     
     ingredients = st.text_input('Ingredients (comma-separated)')
@@ -343,7 +333,7 @@ elif option == 'Custom Search':
             filtered_recipes = df.query(query)
             
             # No need to sort again since df is already sorted
-            st.write(f"Showing top {10} results for the given filters:")
+            st.write(f"Showing results for the given filters:")
             #st.write(filtered_recipes.head(num_results))
             selected_columns = ['name', 'category', 'ingredients', 'directions','rating', 'rating_count', 'diet_type','calories', 'servings', 'Carbohydrates g(Daily %)', 'Sugars g(Daily %)', 'Fat g(Daily %)', 'Protein g(Daily %)', 'cook']
             filtered_recipes = filtered_recipes.sort_values(by=['rating_count', 'rating'], ascending=False)
@@ -370,4 +360,3 @@ with st.expander("Leave Us a Comment or Question"):
 
     # Use Local CSS File
     local_css("style.css")
-

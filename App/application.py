@@ -8,15 +8,17 @@ from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 import tensorflow as tf
-from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
 
-# Set up the page configuration
 icon = Image.open("chef.jpg")
-st.set_page_config(layout='centered', page_title='AI-Powered Recipe Recommender', page_icon=icon)
+st.set_page_config(layout='centered', page_title='Recipe Recommender Using ML', page_icon=icon)
 
-# Upload and display the project logo
-st.image(Image.open("project_logo.JPG"), use_column_width=True)
+# Let's upload the Painted Ladies image:
+image = Image.open("project_logo.JPEG")
+# Let's specify which column, fix its width, and let's give this image a caption:
+st.image(Image.open("project_logo.JPEG"), use_column_width=True)
+
 
 # Load the saved models and components
 with open('recipe_recommendation_model.pkl', 'rb') as file:
@@ -41,9 +43,12 @@ df['Sugars g(Daily %)'] = df.apply(lambda x: f"{x['sugars_g']}g ({x['sugars_g_dv
 df['Fat g(Daily %)'] = df.apply(lambda x: f"{x['fat_g']}g ({x['fat_g_dv_perc']}%)", axis=1)
 df['Protein g(Daily %)'] = df.apply(lambda x: f"{x['protein_g']}g ({x['protein_g_dv_perc']}%)", axis=1)
 
+
 # Transform the combined features using the loaded TF-IDF vectorizer and PCA model
 tfidf_matrix = tfidf.transform(df['combined_features'])  # Use transform instead of fit_transform
 tfidf_pca = pca.transform(tfidf_matrix.toarray())  # Use transform instead of fit_transform
+
+
 
 # Rename the columns to user-friendly names
 friendly_names = {
@@ -58,11 +63,10 @@ friendly_names = {
     'cook': 'Cook Time (minutes)',
     'rating': 'Rating',
     'rating_count': 'Rating Count',
-    'diet_type': 'Diet Type',
+    'diet_type' : 'Diet Type',
     'ingredients': 'Ingredients',
     'directions': 'Directions'
-}
-
+            }
 # Function to get similar recipes
 def get_similar_recipes(recipe_name, top_n=5, diversify=False, diversity_factor=0.1):
     target_index = df[df['name'] == recipe_name].index[0]
@@ -87,6 +91,7 @@ def get_similar_recipes(recipe_name, top_n=5, diversify=False, diversity_factor=
     selected_columns = ['name', 'category', 'ingredients', 'directions','rating', 'rating_count', 'diet_type','calories', 'servings', 'Carbohydrates g(Daily %)', 'Sugars g(Daily %)', 'Fat g(Daily %)', 'Protein g(Daily %)', 'cook']
     selected_recipes = similar_recipes_sorted[selected_columns].head(top_n)
     
+    
     return selected_recipes.rename(columns=friendly_names)
 
 # Function to filter recipes by servings
@@ -104,7 +109,12 @@ def filter_by_servings(servings):
 def filter_by_recipe_name(name):
     return df[df['name'].str.contains(name, case=False, na=False)]
 
-# Function to autocomplete suggestions
+
+# Function to filter and sort recipes
+def filter_and_sort_by_recipe_name(name):
+    results = filter_by_recipe_name(name)
+    return results.sort_values(by=['rating_count','rating'], ascending=False)
+
 def autocomplete_suggestions(user_input, df, max_suggestions=5):
     # Filter recipe names that contain the user input
     filtered_df = df[df['name'].str.contains(user_input, case=False, na=False)]
@@ -115,14 +125,32 @@ def autocomplete_suggestions(user_input, df, max_suggestions=5):
     # Return the top `max_suggestions` recipe names
     return sorted_df['name'].head(max_suggestions).tolist()
 
-# Custom CSS for styling
+# Custom CSS
 def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 local_css("style.css")
 
-# Introduction section
+def display_recipes_in_blog_format(recipes):
+        for index, recipe in recipes.iterrows():
+            st.markdown(f"""
+            <div style="border: 1px solid #444; padding: 15px; margin-bottom: 20px; border-radius: 8px; background-color: #000; color: #fff;">
+                <h3 style="color: #fff;">{index + 1}. {recipe['Recipe Name']}</h3>
+                <p><strong>Category:</strong> {recipe['Category']}</p>
+                <p><strong>Calories:</strong> {recipe['Calories (kcal)']}</p>
+                <p><strong>Diet Type:</strong> {recipe['Diet Type']}</p>
+                <p><strong>Servings:</strong> {recipe['Servings']}</p>
+                <p><strong>Cook Time:</strong> {recipe['Cook Time (minutes)']}</p>
+                <p><strong>Rating:</strong> {recipe['Rating']} ({recipe['Rating Count']} reviews)</p>
+                <p><strong>Ingredients:</strong> {recipe['Ingredients']}</p>
+                <p><strong>Directions:</strong></p>
+                <p>{recipe['Directions']}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+#   - Recommendations are automatically diversified to offer you a broader variety of results.
+
 st.markdown(
     """
     ## Introduction
@@ -134,7 +162,7 @@ st.markdown(
     **1) Personalized Recommendations:**
     - Simply enter the name of a recipe, and the app will suggest similar recipes tailored to your preferences.
     - Autocomplete suggestions guide you to the exact recipe name you're looking for.
-    - Our recommender system is based on Rating, Category, Diet Type, and Ingredients.
+    - Our Recommender system is based on Rating, Category, Diet Type, and Ingredients.
     
     **2) Popular Searches:**
     - Quickly access popular and trending recipes.
@@ -155,13 +183,15 @@ st.markdown(
     ## Find Your Perfect Recipe
     """
 )
-
 option = st.selectbox(
     'How would you like to search for recipes?',
     ('Personalized Recommendations', 'Popular Searches', 'Custom Search')
 )
 
+
 if option == 'Personalized Recommendations':
+    #st.header('Get Recommendations')
+
     st.write(
 """
     ### **Get Recommendations**
@@ -183,90 +213,185 @@ if option == 'Personalized Recommendations':
                 break  # Exit the loop once a selection is made
 
     if selected_recipe:
-        similar_recipes = get_similar_recipes(selected_recipe, top_n=10, diversify=False)
-        st.write(f"Top 10 recommendations for '{selected_recipe}':")
-        
-        # Display the recipes in a blog format
-        for index, row in similar_recipes.iterrows():
-            st.markdown(f"### {row['Recipe Name']}")
-            st.markdown(f"**Category:** {row['Category']}")
-            st.markdown(f"**Diet Type:** {row['Diet Type']}")
-            st.markdown(f"**Rating:** {row['Rating']} ({row['Rating Count']} ratings)")
-            st.markdown(f"**Servings:** {row['Servings']}")
-            st.markdown(f"**Calories:** {row['Calories (kcal)']}")
-            st.markdown(f"**Cook Time:** {row['Cook Time (minutes)']} minutes")
-            st.markdown(f"**Ingredients:** {row['Ingredients']}")
-            st.markdown(f"**Directions:** {row['Directions']}")
-            st.write("---")
+        # Fetch similar recipes based on the selected recipe
+        similar_recipes = get_similar_recipes(selected_recipe, top_n=10, diversify=0)
 
-        st.write("#### Learn More")
-        st.markdown("[![](https://via.placeholder.com/400x200.png?text=Explore+More)](https://www.example.com)")
-    
+        st.write(f"Top 10 recommendations for '{selected_recipe}':")
+
+        for index, recipe in similar_recipes.iterrows():
+            st.markdown(f"""
+            <div style="border: 1px solid #444; padding: 15px; margin-bottom: 20px; border-radius: 8px; background-color: #000; color: #fff;">
+                <h3 style="color: #fff;">{index + 1}. {recipe['Recipe Name']}</h3>
+                <p><strong>Category:</strong> {recipe['Category']}</p>
+                <p><strong>Calories:</strong> {recipe['Calories (kcal)']}</p>
+                <p><strong>Diet Type:</strong> {recipe['Diet Type']}</p>
+                <p><strong>Servings:</strong> {recipe['Servings']}</p>
+                <p><strong>Cook Time:</strong> {recipe['Cook Time (minutes)']}</p>
+                <p><strong>Rating:</strong> {recipe['Rating']} ({recipe['Rating Count']} reviews)</p>
+                <p><strong>Ingredients:</strong> {recipe['Ingredients']}</p>
+                <p><strong>Directions:</strong></p>
+                <p>{recipe['Directions']}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+    elif user_input and not selected_recipe:
+        if st.button('Get Recommendations'):
+            st.warning('No matching recipes found. Please try again.')
+
 elif option == 'Popular Searches':
+    #st.header('Popular Searches')
+
     st.write(
 """
     ### **Popular Searches**
-""")
-    
-    # Display popular recipes (Top 5 based on rating)
-    popular_recipes = df.sort_values(by='rating_count', ascending=False).head(5)
-    
-    # Display the recipes in a blog format
-    for index, row in popular_recipes.iterrows():
-        st.markdown(f"### {row['name']}")
-        st.markdown(f"**Category:** {row['category']}")
-        st.markdown(f"**Diet Type:** {row['diet_type']}")
-        st.markdown(f"**Rating:** {row['rating']} ({row['rating_count']} ratings)")
-        st.markdown(f"**Servings:** {row['servings']}")
-        st.markdown(f"**Calories:** {row['calories']} kcal")
-        st.markdown(f"**Cook Time:** {row['cook']} minutes")
-        st.markdown(f"**Ingredients:** {row['ingredients']}")
-        st.markdown(f"**Directions:** {row['directions']}")
-        st.write("---")
+""") 
+    results = pd.DataFrame()  # Initialize results to avoid NameError
+
+    # Search bar for direct recipe name search
+    search_query = st.text_input("What would you like to cook?")
+    if search_query:
+        results = filter_by_recipe_name(search_query)
+        results = results.sort_values(by=['rating_count','rating'], ascending=False)
+
+    def filter_and_sort_by_servings(servings):
+        filtered_results = filter_by_servings(servings)
+        return filtered_results.sort_values(by=['rating_count','rating'], ascending=False)
+
+    def filter_and_sort_by_recipe_name(name):
+        filtered_results = filter_by_recipe_name(name)
+        return filtered_results.sort_values(by=['rating_count', 'rating'], ascending=False)
+    # Function to display the recipes in a blog-like format
+    # Search by Servings
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button('Cooking for one'):
+            results = filter_and_sort_by_servings("one")
+    #with col2:
+        if st.button('Cooking for two'):
+            results = filter_and_sort_by_servings("two")
+    #with col3:
+        if st.button('Cooking for crowd'):
+            results = filter_and_sort_by_servings("crowd")  
+    # Search by Recipe Name
+    #col1, col2, col3 = st.columns(3)
+    with col2:
+        if st.button('Fish'):
+            results = filter_and_sort_by_recipe_name("fish")
+        if st.button('Chicken'):
+            results = filter_and_sort_by_recipe_name("Chicken")            
+    with col3:
+        if st.button('Lasagna'):
+            results = filter_and_sort_by_recipe_name("Lasagna")
+        if st.button('Pancakes'):
+            results = filter_and_sort_by_recipe_name("Pancakes")
+        if st.button('Banana Bread'):
+            results = filter_and_sort_by_recipe_name("Banana Bread")
+     
+
+    if not results.empty:
+        st.write("Showing results for your search:")
+        #st.write(results)
+            # Select only the desired columns
+        selected_columns = ['name', 'category', 'ingredients', 'directions','rating', 'rating_count', 'diet_type','calories', 'servings', 'Carbohydrates g(Daily %)', 'Sugars g(Daily %)', 'Fat g(Daily %)', 'Protein g(Daily %)', 'cook']
+        results = results[selected_columns].head(10)
+        results = results.rename(columns=friendly_names)
+        st.dataframe(results.reset_index(drop=True).reset_index(drop=False).rename(columns={'index': 'Rank'}).assign(Rank=lambda x: x.index + 1), hide_index=True)
+
 
 elif option == 'Custom Search':
+    #st.header('Search Recipes')
+
     st.write(
 """
-    ### **Custom Search**
-""")
+    ### **Search Recipes**
+""") 
     
-    # Filter options
-    servings_option = st.selectbox('Choose serving size:', ['All', 'one', 'two', 'crowd'])
+    category = st.selectbox('Category', [
+        'appetizers-and-snacks', 'desserts', 'world-cuisine', 'main-dish', 
+        'side-dish', 'bread', 'soups-stews-and-chili', 'meat-and-poultry', 
+        'salad', 'seafood', 'breakfast-and-brunch'
+    ])
     
-    if servings_option != 'All':
-        filtered_recipes = filter_by_servings(servings_option)
-        st.write(f"Found {len(filtered_recipes)} recipes for serving size '{servings_option}'.")
+    diet_type = st.selectbox('Diet Type', [
+        'General', 'High Protein', 'Low Carb, Low Sugar', 'Low Carb, High Protein, Low Sugar',
+        'High Protein, Low Sugar', 'Low Fat', 'Low Sugar', 'Low Carb, Low Fat, Low Sugar',
+        'Low Fat, Low Sugar', 'Low Carb, Low Fat, Low Sodium, Low Sugar', 'Low Fat, Low Sodium',
+        'Low Carb, Low Fat, Low Sodium', 'Low Sodium', 'Low Carb, High Protein', 'Low Carb'
+    ])
+    
+    ingredients = st.text_input('Ingredients (comma-separated)')
+    
+    serving_one = st.checkbox('Cooking for One')
+    serving_two = st.checkbox('Cooking for Two')
+    serving_crowd = st.checkbox('Cooking for a Crowd')
+    
+    quick_and_easy = st.checkbox('Quick and Easy Recipes')
+    
+    #num_results = st.slider('Number of Results to Show', 1, 50, 10)
+    
+    if st.button('Search'):
+        query_parts = []
+        if category:
+            query_parts.append(f'category == "{category}"')
         
-        # Display filtered recipes
-        for index, row in filtered_recipes.iterrows():
-            st.markdown(f"### {row['name']}")
-            st.markdown(f"**Category:** {row['category']}")
-            st.markdown(f"**Diet Type:** {row['diet_type']}")
-            st.markdown(f"**Rating:** {row['rating']} ({row['rating_count']} ratings)")
-            st.markdown(f"**Servings:** {row['servings']}")
-            st.markdown(f"**Calories:** {row['calories']} kcal")
-            st.markdown(f"**Cook Time:** {row['cook']} minutes")
-            st.markdown(f"**Ingredients:** {row['ingredients']}")
-            st.markdown(f"**Directions:** {row['directions']}")
-            st.write("---")
-    
-    # Displaying the total number of recipes
-    total_recipes = len(df)
-    st.write(f"Total recipes available: {total_recipes}")
+        if diet_type and diet_type != 'General':  # Apply diet type filter if selected
+            query_parts.append(f'diet_type == "{diet_type}"')
+        
+        if ingredients:
+            ingredients_list = ingredients.split(',')
+            ingredients_query = ' & '.join([f'high_level_ingredients_str.str.contains("{ingredient.strip()}")' for ingredient in ingredients_list])
+            query_parts.append(ingredients_query)
+        
+        # Apply serving size filter
+        if serving_one:
+            query_parts.append('servings == 1')
+        if serving_two:
+            query_parts.append('servings == 2')
+        if serving_crowd:
+            query_parts.append('servings >= 5')
+        
+        # Apply quick and easy filter
+        if quick_and_easy:
+            query_parts.append('cook_time_mins <= 15')
+        
+        query = " & ".join(query_parts)
+        
+        # Print the query for debugging purposes
+        #st.write(f"Query: {query}")
+        
+        if query:
+            # Filter the DataFrame
+            filtered_recipes = df.query(query)
+            
+            # No need to sort again since df is already sorted
+            st.write(f"Showing results for the given filters:")
+            
+            selected_columns = ['name', 'category', 'ingredients', 'directions', 'rating', 'rating_count', 'diet_type', 'calories', 'servings', 
+                                'Carbohydrates g(Daily %)', 'Sugars g(Daily %)', 'Fat g(Daily %)', 'Protein g(Daily %)','cook']
+            
+            filtered_recipes = filtered_recipes.sort_values(by=['rating_count', 'rating'], ascending=False)
+            filtered_recipes = filtered_recipes[selected_columns]
+            filtered_recipes = filtered_recipes.rename(columns=friendly_names)
 
-# Footer with information about the app
-st.markdown(
-    """
-    ---
-    ### About This App
-    This app was developed as a part of a project to help users discover and recommend recipes. 
-    It utilizes machine learning techniques to provide personalized recipe recommendations based on user input.
-    
-    ### Feedback
-    We welcome your feedback! Please share your thoughts to help us improve the app.
-    
-    ### Contact
-    For any inquiries, please reach out to [Your Email Here].
-    """
-)
+            # Display the recipes in a blog-like format
+            display_recipes_in_blog_format(filtered_recipes.reset_index(drop=True))
+        else:
+            st.warning('Please enter at least one filter.')
+st.write('---')
 
+#null9_0, row9_1, row9_2 = st.columns((0, 5, 0.05))
+with st.expander("Leave Us a Comment or Question"):
+    contact_form = """
+        <form action=https://formsubmit.co/aktham.momani81@gmail.com method="POST">
+            <input type="hidden" name="_captcha" value="false">
+            <input type="text" name="name" placeholder="Your name" required>
+            <input type="email" name="email" placeholder="Your email" required>
+            <textarea name="message" placeholder="Your message here"></textarea>
+            <button type="submit">Send</button>
+        </form>
+    """
+    st.markdown(contact_form, unsafe_allow_html=True)
+
+    # Use Local CSS File
+    local_css("style.css")
